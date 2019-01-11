@@ -1,8 +1,8 @@
-Fastdfs nginx server
+介绍
 =============
-With some nginx modules in docker
+这个镜像集成了fastdfs和nginx反向代理，使之能够通过url直接访问分布式文件系统中的资源。
 
-Install
+镜像中各个组件的版本
 -------------
 * [libfastcommon-1.0.35](https://github.com/happyfish100/libfastcommon)
 * [fastdfs-master (20170712)](https://github.com/happyfish100/fastdfs)
@@ -12,12 +12,12 @@ Install
 * [nginx-eval-module-master (20170712)](https://github.com/vkholodkov/nginx-eval-module)
 * [ngx_http_redis-0.3.8](https://www.nginx.com/resources/wiki/modules/redis)
 
-Conf
+配置文件
 -------------
 * storage.conf
 ``````
-## can not use 127.0.0.1
-tracker_server=host-ip:22122
+## 请修改tracker_ip，默认为139.159.157.156，华为云04
+tracker_server=tracker_ip:22122 
 ``````
 * mod_fastdfs.conf
 ``````
@@ -25,32 +25,25 @@ tracker_server=127.0.0.1:22122
 ``````
 * nginx.conf
 ``````
-## if need check token from redis
+## 如果需要使用redis,请加上这个
 upstream redisbackend {
   server    redis-server-ip:port;
   keepalive 1024;
 }
 ``````
-* other conf files if you needed
+* 其他的配置文件可自行修改
 
-Build
+Build 镜像
 -------------
 ``````
-## you can use your image name to replace name 'fastdfs-nginx'
+## 修改配置文件或者sh脚本后，重新build镜像，可以随意取名，这里名字是fastdfs-nginx
 docker build -t fastdfs-nginx .
 ``````
 
-Network
+运行
 -------------
 ``````
-## you can create your network for this server, like:
-docker network create --driver bridge --subnet 192.168.1.0/20 network0
-``````
-
-Run
--------------
-``````
-## should use host network (test pass)
+## 运行build后的镜像，输入如下命令
 docker run -itd \
   --name fastdfs-nginx \
   --network=host \
@@ -61,27 +54,9 @@ docker run -itd \
   fastdfs-nginx \
   sh -c "/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart && /usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart && /usr/sbin/nginx -g 'daemon off;'"
 
-## if you want to use your network and use ip 192.168.16.6
-## in this case, you should update some conf to make fdfs work
-## like set tracker_server in storage.conf to 192.168.16.6
-## the app which use fdfs-client-java to upload file should in the same network (not test yet)
-docker run -itd \
-  --name fastdfs-nginx \
-  --network=network0 --ip=192.168.16.6 \
-  -p 22122:22122 \
-  -p 23000:23000 \
-  -p 24001:24001 \
-  -p 24002:24002 \
-  -p 11411:11411 \
-  -v /etc/localtime:/etc/localtime:ro \
-  -v /var/log/fdfs/:/data/fdfs/logs/ \
-  -v /data/fdfs/data/:/data/fdfs/data/ \
-  -v /var/log/nginx/:/var/log/nginx/ \
-  fastdfs-nginx \
-  sh -c "/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart && /usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart && /usr/sbin/nginx -g 'daemon off;'"
 ``````
 
-API
+通过ngnix代理直接访问文件资源
 -------------
 ``````
 ## fetch file from server, if you need check token
